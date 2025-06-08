@@ -1,46 +1,61 @@
 import "./App.css";
 
-import AdCard from "./components/AdCards";
+import { useEffect, useState } from "react";
 
-const facebookAds = [
-  {
-    campaign_name: "Summer Sale",
-    media_buy_name: "Social Media Ads",
-    ad_name: "Beach Vacation Promo",
-    spend: 1500,
-    impressions: 25000,
-    clicks: 1200,
-  },
-  {
-    campaign_name: "Back to School",
-    media_buy_name: "Display Ads",
-    ad_name: "School Supplies Deal",
-    spend: 1000,
-    impressions: 18000,
-    clicks: 800,
-  },
-  {
-    campaign_name: "Fall Fashion",
-    media_buy_name: "Search Ads",
-    ad_name: "Festive Sneak Peek",
-    spend: 2000,
-    impressions: 30000,
-    clicks: 1500,
-  },
-];
+import AdCard from "./components/AdCards";
+import AdFilters from "./components/AdFilters";
+import { getMergedAds } from "./utils/normalizeAds";
 
 function App() {
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredAds = ads.filter((ad) =>
+    ad.campaign.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedAds = [...filteredAds].sort((a, b) => {
+    if (sortOrder === "asc") return a.spend - b.spend;
+    if (sortOrder === "desc") return b.spend - a.spend;
+    return 0;
+  });
+
+  useEffect(() => {
+    fetch("http://localhost:3000/fakeDataSet")
+      .then((res) => res.json())
+      .then((data) => {
+        const mergedAds = getMergedAds(data);
+        setAds(mergedAds);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching ads:", err);
+        setLoading(false);
+      });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-200 p-6">
       <h1 className="text-3xl font-bold mb-6 text-center">
         Blueprint Ad Campaigns
       </h1>
-
-      <div>
-        {facebookAds.map((ad, index) => (
-          <AdCard key={index} ad={ad} />
-        ))}
-      </div>
+      <AdFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+      />
+      {loading ? (
+        <p className="text-center">Loading ads...</p>
+      ) : (
+        <div className="grid gap-6">
+          {sortedAds.map((ad, index) => (
+            <AdCard key={index} ad={ad} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
